@@ -1,0 +1,70 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/include",
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/src",
+                "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/RemoteXY/src",
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/PID",
+                "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/MPU6050",
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/I2Cdev",
+                "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                "/home/lflavado/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "/home/lflavado/.platformio/packages/framework-arduino-avr/variants/eightanaloginputs",
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/BatteryLevel",
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/ButterFilter",
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/Quadcopter",
+                "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/include",
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/src",
+                    "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/RemoteXY/src",
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/PID",
+                    "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/MPU6050",
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/I2Cdev",
+                    "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    "/home/lflavado/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "/home/lflavado/.platformio/packages/framework-arduino-avr/variants/eightanaloginputs",
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/BatteryLevel",
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/ButterFilter",
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/Quadcopter",
+                    "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=50101",
+                "ARDUINO_AVR_NANO",
+                "F_CPU=16000000L",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO=10808",
+                "__AVR_ATmega328P__",
+                ""
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "compilerPath": "/home/lflavado/.platformio/packages/toolchain-atmelavr/bin/avr-gcc",
+            "compilerArgs": [
+                "-mmcu=atmega328p",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}

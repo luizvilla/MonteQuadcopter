@@ -1,3 +1,12 @@
+//---------------------------------------
+// QUADCOPTER PROGRAM
+// V1.0
+// PROGRAMMER - Luiz Villa
+//---------------------------------------
+
+
+#include "Arduino.h"
+// Initial includes
 #include <SoftwareSerial.h>
 SoftwareSerial mySerial (7, 8); //RX, TX
 #include "I2Cdev.h"
@@ -14,10 +23,52 @@ SoftwareSerial mySerial (7, 8); //RX, TX
 #define BR_MOTOR 10
 #define BL_MOTOR 11
 
+
+//////////////////////////////////////////////
+//        RemoteXY include library          //
+//////////////////////////////////////////////
+
+// RemoteXY select connection mode and include library 
+#define REMOTEXY_MODE__HARDSERIAL
+
+#include <RemoteXY.h>
+
+// RemoteXY connection settings 
+#define REMOTEXY_SERIAL Serial
+#define REMOTEXY_SERIAL_SPEED 9600
+
+
+// RemoteXY configurate  
+#pragma pack(push, 1)
+uint8_t RemoteXY_CONF[] =
+  { 255,0,0,1,0,30,0,11,13,0,
+  66,130,41,26,20,16,2,26,129,0,
+  42,21,18,3,17,77,111,116,111,114,
+  32,83,112,101,101,100,0 };
+  
+// this structure defines all the variables and events of your control interface 
+struct {
+
+    // output variables
+  int8_t pwm_out; // =0..100 level position 
+
+    // other variable
+  uint8_t connect_flag;  // =1 if wire connected, else =0 
+
+} RemoteXY;
+#pragma pack(pop)
+
+/////////////////////////////////////////////
+//           END RemoteXY include          //
+///////////////////////////////////////////// 
+
+
+
 //---------------------------------PID------------------------------------
 //Define Variables we'll be connecting to
 double rollSetpoint, rollInput, rollOutput;
 double pitchSetpoint, pitchInput, pitchOutput;
+double yawSetpoint, yawInput, yawOutput;
 
 //Define the aggressive and conservative Tuning Parameters
 double consKp = 0.5, consKi = 0.05, consKd = 0.05;
@@ -81,7 +132,10 @@ int targetSpeed[4];
 // ===                      INITIAL SETUP                       ===
 // ================================================================
 void setup() {
-  Serial.begin(9600);
+
+Serial.begin(9600);
+Serial.println("INITIALIZING");
+  
 
   for (int i = 0; i < 3; i++) {
     ypr_cal[i] = 0.0;
@@ -91,8 +145,11 @@ void setup() {
   //initialise battery level array with current battery level value
   pinMode(A0, INPUT);
   analogReference(INTERNAL);
-//  float tmp = analogRead(A0) / 1023.0 * MULTIPLIER;
+  float batt_level = analogRead(A0) / 1023.0 * MULTIPLIER;
   motorBattery = 4.2;
+  Serial.print("Battery level");
+  Serial.println(batt_level);
+
   //------------------------------PID----------------------------------
   //initialize the variables we're linked to
   pitchInput = 0.0;
@@ -102,8 +159,8 @@ void setup() {
   rollSetpoint = 0.0;
 
   //turn the PID on
-  pitchPID.SetMode(AUTOMATIC);
-  rollPID.SetMode(AUTOMATIC);
+  // pitchPID.SetMode(AUTOMATIC);
+  // rollPID.SetMode(AUTOMATIC);
 
   pitchPID.SetOutputLimits(-20, 20);
   rollPID.SetOutputLimits(-20, 20);
@@ -112,6 +169,7 @@ void setup() {
     targetSpeed[i] = 0;
   }
 
+  //initializes the motors and their pin mode
   pinMode(FL_MOTOR, OUTPUT);
   pinMode(FR_MOTOR, OUTPUT);
   pinMode(BR_MOTOR, OUTPUT);
@@ -128,46 +186,50 @@ void setup() {
   // initialize mySerial communication
   // (115200 chosen because it is required for Teapot Demo output, but it's
   // really up to you depending on your project)
-  mySerial.begin(9600);
-  while (!mySerial); // wait for Leonardo enumeration, others continue immediately
+  //mySerial.begin(9600);
+  // Serial.println("Initializing the arduino");
+  // while (!mySerial); // wait for Leonardo enumeration, others continue immediately
 
   // initialize device
-  mySerial.println(F("Initializing I2C devices..."));
+  // Serial.println("Initializing I2C devices...");
   mpu.initialize();
 
   // verify connection
-  mySerial.println(F("Testing device connections..."));
-  mySerial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+  // Serial.println(" ");
+  // Serial.println("Testing device connections...");
+  // Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
   // wait for ready
-  mySerial.println(F("\nSend any character to begin DMP programming and demo: "));
-  while (mySerial.available() && mySerial.read()); // empty buffer
-  while (!mySerial.available());                 // wait for data
-  while (mySerial.available() && mySerial.read()); // empty buffer again
+  // mySerial.println(F("\nSend any character to begin DMP programming and demo: "));
+  // while (mySerial.available() && mySerial.read()); // empty buffer
+  // while (!mySerial.available());                 // wait for data
+  // while (mySerial.available() && mySerial.read()); // empty buffer again
 
   // load and configure the DMP
-  mySerial.println(F("Initializing DMP..."));
+  // Serial.println(" ");
+  // Serial.println(F("Initializing DMP..."));
   devStatus = mpu.dmpInitialize();
 
   // supply your own gyro offsets here, scaled for min sensitivity
-  mpu.setXGyroOffset(220);
-  mpu.setYGyroOffset(76);
-  mpu.setZGyroOffset(-85);
-  mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
+  // mpu.setXGyroOffset(220);
+  // mpu.setYGyroOffset(76);
+  // mpu.setZGyroOffset(-85);
+  // mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
+
 
   // make sure it worked (returns 0 if so)
   if (devStatus == 0) {
     // turn on the DMP, now that it's ready
-    mySerial.println(F("Enabling DMP..."));
+    // Serial.println(F("Enabling DMP..."));
     mpu.setDMPEnabled(true);
 
     // enable Arduino interrupt detection
-    mySerial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
+    // Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
     attachInterrupt(0, dmpDataReady, RISING);
     mpuIntStatus = mpu.getIntStatus();
 
     // set our DMP Ready flag so the main loop() function knows it's okay to use it
-    mySerial.println(F("DMP ready! Waiting for first interrupt..."));
+    // Serial.println(F("DMP ready! Waiting for first interrupt..."));
     dmpReady = true;
 
     // get expected DMP packet size for later comparison
@@ -177,42 +239,59 @@ void setup() {
     // 1 = initial memory load failed
     // 2 = DMP configuration updates failed
     // (if it's going to break, usually the code will be 1)
-    mySerial.print(F("DMP Initialization failed (code "));
-    mySerial.print(devStatus);
-    mySerial.println(F(")"));
+    // Serial.print(F("DMP Initialization failed (code "));
+    // Serial.print(devStatus);
+    // Serial.println(F(")"));
   }
 
   // configure LED for output
   pinMode(LED_PIN, OUTPUT);
+  RemoteXY_Init ();  
+
 }
 
 // ================================================================
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
 int myReading = 0;
+int pwm_out = 0;
+int delay_count = 0; //count the number of delays - used to increment the motor speed slowly
+
 void loop() {
+
+  RemoteXY_Handler (); 
+
+
+  //RemoteXY.pwm_out = 35;
+
+
+  // RemoteXY.roll = 30;
+  // RemoteXY.yaw = 15;
+
+  // RemoteXY.pwm_out = pwm_out>>3;
+
   // if programming failed, don't try to do anything
-  if (!dmpReady) return;
+  // if (!dmpReady) return;
 
-  if (mySerial.available()) {
-    myReading = mySerial.parseInt();
-    for (int i = 0; i < 4; i++) {
-      targetSpeed[i] = myReading;
-    }
+  // if (mySerial.available()) {
+  //   myReading = mySerial.parseInt();
+  //   for (int i = 0; i < 4; i++) {
+  //     targetSpeed[i] = myReading;
+  //   }
 
-    runIndividual(targetSpeed);
-    while (mySerial.available())  //flushing anything that wasn't read
-      mySerial.read();
-    //      runIndividual(myReading);
-    //      checkMotor(myReading);
-    //        checkIndividual(myReading);
-  }
+  //   runIndividual(targetSpeed);
+  //   while (mySerial.available())  //flushing anything that wasn't read
+  //     mySerial.read();
+  //        runIndividual(myReading);
+  //        checkMotor(myReading);
+  //          checkIndividual(myReading);
+  // }
 
   // wait for MPU interrupt or extra packet(s) available
-//      while (!mpuInterrupt && fifoCount < packetSize) {
-  // if you are really paranoid you can frequently test in between other
-  // stuff to see if mpuInterrupt is true, and if so, "break;" from the
-  // while() loop to immediately process the MPU data
+  //    while (!mpuInterrupt && fifoCount < packetSize) {
+  // // if you are really paranoid you can frequently test in between other
+  // // stuff to see if mpuInterrupt is true, and if so, "break;" from the
+  // // while() loop to immediately process the MPU data
   //    }
 
   // reset interrupt flag and get INT_STATUS byte
@@ -241,75 +320,112 @@ void loop() {
     fifoCount -= packetSize;
 
 
-    // display Euler angles in degrees
+//     // display Euler angles in degrees
     mpu.dmpGetQuaternion(&q, fifoBuffer);
     mpu.dmpGetGravity(&gravity, &q);
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
+    //compensates for the offset and converts in degrees
+    yawInput   = (ypr[0]-ypr_cal[0]) * 180 / M_PI;  //compensates for the offset and converts in degrees
+    pitchInput = (ypr[1]-ypr_cal[1]) * 180 / M_PI;
+    rollInput  = (ypr[2]-ypr_cal[2]) * 180 / M_PI;
+
+
+    Serial.print(yawInput);
+    Serial.print(" ");
+    Serial.print(pitchInput);
+    Serial.print(" ");
+    Serial.println(rollInput);
+
+    // Serial.print(gravity.x);
+    // Serial.print(gravity.y);
+    // Serial.println(gravity.z);
+    // Serial.println("");
+
+    // Serial.print(q.x);
+    // Serial.print(q.y);
+    // Serial.println(q.z);
+    // Serial.println("");
+
+
     //----------------------------------------PID-----------------------------------------
-    if (myReading == 0) {
-      Serial.println(F("CALIBRATING"));
-      ypr_cal[0] = ypr[0] * 180 / M_PI;
-      ypr_cal[1] = ypr[1] * 180 / M_PI;
-      ypr_cal[2] = ypr[2] * 180 / M_PI;
+    // if (myReading == 0) {
+    //   Serial.println(F("CALIBRATING"));
+    //   ypr_cal[0] = ypr[0] * 180 / M_PI;
+    //   ypr_cal[1] = ypr[1] * 180 / M_PI;
+    //   ypr_cal[2] = ypr[2] * 180 / M_PI;
 
-      //              ypr_cal[1] = 1.26;
-      //              ypr_cal[2] = -0.55;
-    }
+    //   //              ypr_cal[1] = 1.26;
+    //   //              ypr_cal[2] = -0.55;
+    // }
 
-    pitchInput = ypr[1] * 180 / M_PI - ypr_cal[1];
-    rollInput = ypr[2] * 180 / M_PI - ypr_cal[2];
+    // pitchInput = ypr[1] * 180 / M_PI - ypr_cal[1];
+    // rollInput = ypr[2] * 180 / M_PI - ypr_cal[2];
+
+
+
+
 
     //            pitchInput /= 2.0;
     //            rollInput /= 2.0;
 
-    pitchPID.Compute();
-    rollPID.Compute();
+//     pitchPID.Compute();
+//     rollPID.Compute();
 
-    int actSpeed[4];
-    stabilise (targetSpeed, actSpeed, rollOutput, pitchOutput);
-//    targetSpeed = actSpeed; // should this behere or not?
+//     int actSpeed[4];
+//     stabilise (targetSpeed, actSpeed, rollOutput, pitchOutput);
+// //    targetSpeed = actSpeed; // should this behere or not?
 
-    Serial.print(F("pitchInput="));
-    Serial.print(pitchInput);
-    Serial.print(F("   pitchOutput="));
-    Serial.print(pitchOutput);
+//     Serial.print(F("pitchInput="));
+//     Serial.print(pitchInput);
+//     Serial.print(F("   pitchOutput="));
+//     Serial.print(pitchOutput);
 
-    Serial.print(F("   rollInput="));
-    Serial.print(rollInput);
-    Serial.print(F("   rollOutput="));
-    Serial.print(rollOutput);
+//     Serial.print(F("   rollInput="));
+//     Serial.print(rollInput);
+//     Serial.print(F("   rollOutput="));
+//     Serial.print(rollOutput);
 
-    Serial.print(F("   mot[0]="));
-    Serial.print(actSpeed[0]);
-    Serial.print(F("   mot[1]="));
-    Serial.print(actSpeed[1]);
-    Serial.print(F("   mot[2]="));
-    Serial.print(actSpeed[2]);
-    Serial.print(F("   mot[3]="));
-    Serial.println(actSpeed[3]);
+//     Serial.print(F("   mot[0]="));
+//     Serial.print(actSpeed[0]);
+//     Serial.print(F("   mot[1]="));
+//     Serial.print(actSpeed[1]);
+//     Serial.print(F("   mot[2]="));
+//     Serial.print(actSpeed[2]);
+//     Serial.print(F("   mot[3]="));
+//     Serial.println(actSpeed[3]);
 
-    //runIndividual (actSpeed);
-    //            checkIndividual(myReading, actSpeed);
-    //------------------------------------------------------------------------------------
-    motorBattery = smoothBattery(motorBattery, analogRead(A0) / 1023.0 * MULTIPLIER, ALPHA);
-    if (motorBattery < 2.0){
-      mySerial.println (F("WARNING! LOW BATTERY!"));
-    }
-    mySerial.print(motorBattery);
-    mySerial.print(F("   ypr   "));
-    mySerial.print(ypr[0] * 180 / M_PI);
-    mySerial.print("   ");
-    mySerial.print(ypr[1] * 180 / M_PI);
-    mySerial.print("   ");
-    mySerial.println(ypr[2] * 180 / M_PI);
+//     runIndividual (actSpeed);
+//                checkIndividual(myReading, actSpeed);
+//     ------------------------------------------------------------------------------------
+//     motorBattery = smoothBattery(motorBattery, analogRead(A0) / 1023.0 * MULTIPLIER, ALPHA);
+//     if (motorBattery < 2.0){
+//       mySerial.println (F("WARNING! LOW BATTERY!"));
+//     }
+//     mySerial.print(motorBattery);
+//     mySerial.print(F("   ypr   "));
+//     mySerial.print(ypr[0] * 180 / M_PI);
+//     mySerial.print("   ");
+//     mySerial.print(ypr[1] * 180 / M_PI);
+//     mySerial.print("   ");
+//     mySerial.println(ypr[2] * 180 / M_PI);
 
 
-    // blink LED to indicate activity
-    blinkState = !blinkState;
-    digitalWrite(LED_PIN, blinkState);
+  //   // blink LED to indicate activity
+  //   blinkState = 1;
+  //   digitalWrite(LED_PIN, blinkState);
+
+      // pwm_out = 5;
+      setSpeed(pwm_out);
+      // runIndividual(targetSpeed);
+      // Serial.print(F("speed="));
+      // Serial.println(pwm_out);
+      if(delay_count==10) pwm_out++;
+      if(pwm_out > 10) pwm_out = 1 ;
   }
   delay(100);
+  delay_count++;
+  if(delay_count > 10) delay_count = 1 ;
 }
 
 float smoothBattery (float prevEntry, float newEntry, float alpha) {
