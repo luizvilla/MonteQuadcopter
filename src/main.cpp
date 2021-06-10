@@ -18,78 +18,74 @@ void setup() {
 // ================================================================
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
-int myReading = 0;
-int pwm_out = 0;
+
 int delay_count = 0; //count the number of delays - used to increment the motor speed slowly
+
 
 void loop() {
 
-  //RemoteXY_Handler (); 
+  //RemoteXY_Handler ();    // Handler of the graphic user interface. De-comment to trigger communication with the GUI
+  
+  // MEASUREMENT SUB-ROUTINE -------------------------------------------------
+  measurement_routine();
 
-  // reset interrupt flag and get INT_STATUS byte
-  mpuInterrupt = false;
-  mpuIntStatus = mpu.getIntStatus();
+  // DECISION SUB-ROUTINE ----------------------------------------------------
+  pwm_out = 5;    // sets a fixed pwm_out value
 
-  // get current FIFO count
-  fifoCount = mpu.getFIFOCount();
+  // ACTION SUB-ROUTINE ------------------------------------------------------
 
-  // check for overflow (this should never happen unless our code is too inefficient)
-  if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
-    // reset so we can continue cleanly
-    mpu.resetFIFO();
-    //        mySerial.println(F("FIFO overflow!"));
-
-    // otherwise, check for DMP data ready interrupt (this should happen frequently)
-  } else if (mpuIntStatus & 0x02) {
-    // wait for correct available data length, should be a VERY short wait
-    while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
-
-    // read a packet from FIFO
-    mpu.getFIFOBytes(fifoBuffer, packetSize);
-
-    // track FIFO count here in case there is > 1 packet available
-    // (this lets us immediately read more without waiting for an interrupt)
-    fifoCount -= packetSize;
-
-
-    // display Euler angles in degrees
-    mpu.dmpGetQuaternion(&q, fifoBuffer);
-    mpu.dmpGetGravity(&gravity, &q);
-    mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-
-    //compensates for the offset and converts in degrees
-    yawInput   = (ypr[0]-ypr_cal[0]) * 180 / M_PI;  //compensates for the offset and converts in degrees
-    pitchInput = (ypr[1]-ypr_cal[1]) * 180 / M_PI;
-    rollInput  = (ypr[2]-ypr_cal[2]) * 180 / M_PI;
-
-    batt_level = analogRead(A0) / 1023.0 * MULTIPLIER;
-
-    RemoteXY.motor_speed = pwm_out;
-    RemoteXY.show_pitch = pitchInput;
-    RemoteXY.show_roll = rollInput;
-    RemoteXY.show_yaw = yawInput;
-
-
-      // pwm_out = 5;
-      setSpeed(pwm_out);
-      // runIndividual(targetSpeed);
-      // Serial.print(F("speed="));
-      // Serial.println(pwm_out);
-      if(delay_count==2000) pwm_out++;
-      if(pwm_out > 50) pwm_out = 1 ;
-  }
-//  delay(100);
-  delay_count++;
-  if(delay_count > 2000) delay_count = 1 ;
+  setSpeed(pwm_out);      // sets the speed to test the motors
 }
 
 
 // ---------------- OTHER FUNCTIONS --------------- 
 
+
+/** Calculates the battery usage.
+ * @param prevEntry Previous battery voltage value
+ * @param newEntry New battery voltage value
+ * @param alpha Smooth factor
+ * @return Smoothed value
+ */
 float smoothBattery (float prevEntry, float newEntry, float alpha) {
   return (1-alpha) * prevEntry + alpha * newEntry;
 }
 
+
+/** Calls the measurement routine and stores the values in global variables
+ */
+void measurement_routine (){
+  mpuInterrupt = false;                 // reset interrupt flag 
+  mpuIntStatus = mpu.getIntStatus();    // get INT_STATUS byte  
+  fifoCount = mpu.getFIFOCount(); // get current FIFO count
+
+  if ((mpuIntStatus & 0x10) || fifoCount == 1024) {    // check for overflow (this should never happen unless our code is too inefficient) 
+    mpu.resetFIFO(); // reset so we can continue cleanly    
+  } else if (mpuIntStatus & 0x02) { // otherwise, check for DMP data ready interrupt (this should happen frequently)
+    
+    while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount(); // wait for correct available data length, should be a VERY short wait    
+    
+    mpu.getFIFOBytes(fifoBuffer, packetSize); // read a packet from FIFO
+    fifoCount -= packetSize;                  // track FIFO count here in case there is > 1 packet available (this lets us immediately read more without waiting for an interrupt)
+    
+    mpu.dmpGetQuaternion(&q, fifoBuffer);   //Gets the Quaternion
+    mpu.dmpGetGravity(&gravity, &q);        //Gets the gravity vector
+    mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);  //Gets the Yaw, Pitch and Roll
+
+    yawInput   = (ypr[0]-ypr_cal[0]) * 180 / M_PI;  //compensates for the offset and converts in degrees
+    pitchInput = (ypr[1]-ypr_cal[1]) * 180 / M_PI;
+    rollInput  = (ypr[2]-ypr_cal[2]) * 180 / M_PI;
+
+    batt_level = analogRead(A0) / 1023.0 * MULTIPLIER; //reads and calculates battery level
+
+    altitude = sensor.readRangeSingleMillimeters(); //reads the altitude
+  }
+}
+
+
+/** Sets a single pwm value for all motors.
+ * @param val Motor PWM value between 0 and 256
+ */
 void setSpeed(int val) {
   analogWrite(FL_MOTOR, val);
   analogWrite(FR_MOTOR, val);
@@ -97,6 +93,12 @@ void setSpeed(int val) {
   analogWrite(BL_MOTOR, val);
 }
 
+/** Sets a single pwm value for all motors.
+ * @param currSpeed Currently set motor speed
+ * @param actSpeed Actual speed to be set
+ * @param rollDiff Changes in value due to roll
+ * @param pitchDiff Changes in value due to the pitch
+ */
 void stabilise (int* currSpeed, int* actSpeed, float rollDiff, float pitchDiff) {
   actSpeed[0] = (int) currSpeed[0] + (rollDiff) - (pitchDiff);  //each motor has actual Speed and speed at which we want them to fly...
   actSpeed[1] = (int) currSpeed[1] + (rollDiff) + (pitchDiff);
@@ -109,6 +111,10 @@ void stabilise (int* currSpeed, int* actSpeed, float rollDiff, float pitchDiff) 
   }
 }
 
+/** Checks the value for a single motor.
+ * @param motor ID of the motor to be checked FL = 0, FR = 1, BR = 2, BL = 3
+ * @param actSpeed Actual speed to be set
+ */
 void checkIndividual (int motor, int* actSpeed) {
   analogWrite(FL_MOTOR, 0);
   analogWrite(FR_MOTOR, 0);
@@ -125,6 +131,9 @@ void checkIndividual (int motor, int* actSpeed) {
     analogWrite(BL_MOTOR, actSpeed[3]);
 }
 
+/** Updates the actual speed for each motor.
+ * @param actSpeed Actual speed to be set
+ */
 void runIndividual (int* actSpeed) {
   analogWrite(FL_MOTOR, actSpeed[0]);
   analogWrite(FR_MOTOR, actSpeed[1]);
@@ -132,36 +141,41 @@ void runIndividual (int* actSpeed) {
   analogWrite(BL_MOTOR, actSpeed[3]);
 }
 
+/** Initializes the QuadCopter setups.
+ */
 void quadInit(){
-Serial.begin(9600);
-  Serial.println("INITIALIZING");
+
+  Serial.begin(9600);               // initializes the Serial
+  Serial.println("INITIALIZING");   // sends a message indicating the system is initializing
   
 
   //Enable internal reference of 1.1V
   //initialise battery level array with current battery level value
-  pinMode(A0, INPUT);
-  analogReference(INTERNAL);
-  batt_level = analogRead(A0) / 1023.0 * MULTIPLIER;
+  pinMode(A0, INPUT);                                 //sets the A0 pin as input
+  analogReference(INTERNAL);                          //sets the analog reference as internal
+  batt_level = analogRead(A0) / 1023.0 * MULTIPLIER;  // reads and calculates battery level
 
-  motorBattery = 3.7;
-  Serial.print("Battery level");
+  motorBattery = 3.7;                   //This is the expected high battery voltage
+  Serial.print("Battery level");        //Prints the battery level
   Serial.println(batt_level);
 
-  //------------------------------PID----------------------------------
+  //------------------------------PID (NOT USED) ----------------------------------
   //initialize the variables we're linked to
-  pitchInput = 0.0;
-  rollInput = 0.0;
+  // pitchInput = 0.0;
+  // rollInput = 0.0;
 
-  pitchSetpoint = 0.0;
-  rollSetpoint = 0.0;
+  // pitchSetpoint = 0.0;
+  // rollSetpoint = 0.0;
 
   //turn the PID on
   // pitchPID.SetMode(AUTOMATIC);
   // rollPID.SetMode(AUTOMATIC);
 
-  pitchPID.SetOutputLimits(-20, 20);
-  rollPID.SetOutputLimits(-20, 20);
+  // pitchPID.SetOutputLimits(-20, 20);
+  // rollPID.SetOutputLimits(-20, 20);
   //-------------------------------------------------------------------
+  
+  // Resets the target speeds
   for (int i = 0; i < 4; i++) {
     targetSpeed[i] = 0;
   }
@@ -173,38 +187,25 @@ Serial.begin(9600);
   pinMode(BL_MOTOR, OUTPUT);
 
   // join I2C bus (I2Cdev library doesn't do this automatically)
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-  Wire.begin();
-  TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
-#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
-  Fastwire::setup(400, true);
-#endif
-
-  // initialize mySerial communication
-  // (115200 chosen because it is required for Teapot Demo output, but it's
-  // really up to you depending on your project)
-  //mySerial.begin(9600);
-  // Serial.println("Initializing the arduino");
-  // while (!mySerial); // wait for Leonardo enumeration, others continue immediately
+  #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+    Wire.begin();
+    TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+  #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
+    Fastwire::setup(400, true);
+  #endif
 
   // initialize device
-  // Serial.println("Initializing I2C devices...");
+  Serial.println("Initializing I2C devices...");
   mpu.initialize();
 
   // verify connection
-  // Serial.println(" ");
-  // Serial.println("Testing device connections...");
-  // Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
-
-  // wait for ready
-  // mySerial.println(F("\nSend any character to begin DMP programming and demo: "));
-  // while (mySerial.available() && mySerial.read()); // empty buffer
-  // while (!mySerial.available());                 // wait for data
-  // while (mySerial.available() && mySerial.read()); // empty buffer again
+  Serial.println(" ");
+  Serial.println("Testing device connections...");
+  Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
   // load and configure the DMP
-  // Serial.println(" ");
-  // Serial.println(F("Initializing DMP..."));
+  Serial.println(" ");
+  Serial.println(F("Initializing DMP..."));
   devStatus = mpu.dmpInitialize();
 
   // supply your own gyro offsets here, scaled for min sensitivity
@@ -217,16 +218,16 @@ Serial.begin(9600);
   // make sure it worked (returns 0 if so)
   if (devStatus == 0) {
     // turn on the DMP, now that it's ready
-    // Serial.println(F("Enabling DMP..."));
+    Serial.println(F("Enabling DMP..."));
     mpu.setDMPEnabled(true);
 
     // enable Arduino interrupt detection
-    // Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
+    Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
     attachInterrupt(0, dmpDataReady, RISING);
     mpuIntStatus = mpu.getIntStatus();
 
     // set our DMP Ready flag so the main loop() function knows it's okay to use it
-    // Serial.println(F("DMP ready! Waiting for first interrupt..."));
+    Serial.println(F("DMP ready! Waiting for first interrupt..."));
     dmpReady = true;
 
     // get expected DMP packet size for later comparison
@@ -236,119 +237,39 @@ Serial.begin(9600);
     // 1 = initial memory load failed
     // 2 = DMP configuration updates failed
     // (if it's going to break, usually the code will be 1)
-    // Serial.print(F("DMP Initialization failed (code "));
-    // Serial.print(devStatus);
-    // Serial.println(F(")"));
+    Serial.print(F("DMP Initialization failed (code "));
+    Serial.print(devStatus);
+    Serial.println(F(")"));
   }
 
   // configure LED for output
   pinMode(LED_PIN, OUTPUT);
+
+  // CODE TO INITIALIZE THE DISTANCE SENSOR
+  sensor.setTimeout(500);
+  if (!sensor.init())
+  {
+    Serial.println("Failed to detect and initialize sensor!");
+  }
+
+  #if defined LONG_RANGE
+    // lower the return signal rate limit (default is 0.25 MCPS)
+    sensor.setSignalRateLimit(0.1);
+    // increase laser pulse periods (defaults are 14 and 10 PCLKs)
+    sensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
+    sensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
+  #endif
+
+  #if defined HIGH_SPEED
+    // reduce timing budget to 20 ms (default is about 33 ms)
+    sensor.setMeasurementTimingBudget(20000);
+  #elif defined HIGH_ACCURACY
+    // increase timing budget to 200 ms
+    sensor.setMeasurementTimingBudget(200000);
+  #endif
 
 
 }
 
 
 
-//UNUSED CODE
-
-    // yawInput   = ypr[0];  //compensates for the offset and converts in degrees
-    // pitchInput = ypr[1];
-    // rollInput  = ypr[2];
-
-    // Serial.print("Yaw");
-    // Serial.print(" ");
-    // Serial.print("Pitch");
-    // Serial.print(" ");
-    // Serial.print("Roll");
-    // Serial.print(" ");
-    // Serial.print("Speed");
-    // Serial.print(" ");
-    // Serial.println("Battery level");
-
-    // Serial.print(yawInput);
-    // Serial.print(" ");
-    // Serial.print(pitchInput);
-    // Serial.print(" ");
-    // Serial.print(rollInput);
-    // Serial.print(" ");
-    // Serial.print(pwm_out);
-    // Serial.print(" ");
-    // Serial.println(batt_level);
-
-    // Serial.print(gravity.x);
-    // Serial.print(gravity.y);
-    // Serial.println(gravity.z);
-    // Serial.println("");
-
-    // Serial.print(q.x);//compensates for the offset and converts in degrees
-    // Serial.print(q.y);
-    // Serial.println(q.z);
-    // Serial.println("");
-
-
-    //----------------------------------------PID-----------------------------------------
-    // if (myReading == 0) {
-    //   Serial.println(F("CALIBRATING"));
-    //   ypr_cal[0] = ypr[0] * 180 / M_PI;
-    //   ypr_cal[1] = ypr[1] * 180 / M_PI;
-    //   ypr_cal[2] = ypr[2] * 180 / M_PI;
-
-    //   //              ypr_cal[1] = 1.26;
-    //   //              ypr_cal[2] = -0.55;
-    // }
-
-    // pitchInput = ypr[1] * 180 / M_PI - ypr_cal[1];
-    // rollInput = ypr[2] * 180 / M_PI - ypr_cal[2];
-
-
-
-
-
-    //            pitchInput /= 2.0;
-    //            rollInput /= 2.0;
-
-//     pitchPID.Compute();
-//     rollPID.Compute();
-
-//     int actSpeed[4];
-//     stabilise (targetSpeed, actSpeed, rollOutput, pitchOutput);
-// //    targetSpeed = actSpeed; // should this behere or not?
-
-//     Serial.print(F("pitchInput="));
-//     Serial.print(pitchInput);
-//     Serial.print(F("   pitchOutput="));
-//     Serial.print(pitchOutput);
-
-//     Serial.print(F("   rollInput="));
-//     Serial.print(rollInput);
-//     Serial.print(F("   rollOutput="));
-//     Serial.print(rollOutput);
-
-//     Serial.print(F("   mot[0]="));
-//     Serial.print(actSpeed[0]);
-//     Serial.print(F("   mot[1]="));
-//     Serial.print(actSpeed[1]);
-//     Serial.print(F("   mot[2]="));
-//     Serial.print(actSpeed[2]);
-//     Serial.print(F("   mot[3]="));
-//     Serial.println(actSpeed[3]);
-
-//     runIndividual (actSpeed);
-//                checkIndividual(myReading, actSpeed);
-//     ------------------------------------------------------------------------------------
-//     motorBattery = smoothBattery(motorBattery, analogRead(A0) / 1023.0 * MULTIPLIER, ALPHA);
-//     if (motorBattery < 2.0){
-//       mySerial.println (F("WARNING! LOW BATTERY!"));
-//     }
-//     mySerial.print(motorBattery);
-//     mySerial.print(F("   ypr   "));
-//     mySerial.print(ypr[0] * 180 / M_PI);
-//     mySerial.print("   ");
-//     mySerial.print(ypr[1] * 180 / M_PI);
-//     mySerial.print("   ");
-//     mySerial.println(ypr[2] * 180 / M_PI);
-
-
-  //   // blink LED to indicate activity
-  //   blinkState = 1;
-  //   digitalWrite(LED_PIN, blinkState);

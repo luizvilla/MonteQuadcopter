@@ -7,6 +7,7 @@
 #include "MPU6050_6Axis_MotionApps20.h"
 #include <PID_v1.h>
 #include <EEPROM.h>
+#include "VL53L0X.h"
 //#include "MPU6050.h" // not necessary if using MotionApps include file
 
 
@@ -98,6 +99,7 @@ PID rollPID(&pitchInput, &pitchOutput, &pitchSetpoint, consKp, consKi, consKd, D
 // AD0 low = 0x68 (default for SparkFun breakout and InvenSense evaluation board)
 // AD0 high = 0x69
 MPU6050 mpu;
+VL53L0X sensor;   // altitude measurement object
 //MPU6050 mpu(0x69); // <-- use for AD0 high
 
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
@@ -120,6 +122,18 @@ VectorFloat gravity;    // [x, y, z]            gravity vector
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 float ypr_cal[3] = {-0.55, -0.03, 0.01}; // initilizes the calibration (done by hand. This should be automated)
+uint16_t altitude = 0; // holds the value of the altitude for the QuadCopter
+
+// motor control variables
+int pwm_out = 0; //holds the value of the pwm
+
+// battery level variables
+float batt_level = 0; //holds the value of the battery level
+float motorBattery = 0; //holds the maximum value of the battery
+
+
+
+
 
 // ================================================================
 // ===               INTERRUPT DETECTION ROUTINE                ===
@@ -130,14 +144,11 @@ void dmpDataReady() {
   mpuInterrupt = true;
 }
 
-
 #define ALPHA 0.1
 #define MULTIPLIER 6.67
-float motorBattery;
 
 int targetSpeed[4];
 
-float batt_level = 0;
 
 //Declaration of base functions
 
@@ -150,4 +161,6 @@ void runIndividual (int* actSpeed);
 void quadInit();
 
 void get_ypr();
+
+void measurement_routine();
 

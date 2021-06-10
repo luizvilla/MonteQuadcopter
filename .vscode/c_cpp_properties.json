@@ -10,10 +10,11 @@
             "includePath": [
                 "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/include",
                 "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/src",
-                "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
                 "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/PID",
                 "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/VL53L0X",
                 "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/RemoteXY/src",
+                "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
                 "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/MPU6050",
                 "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/I2Cdev",
                 "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
@@ -22,7 +23,7 @@
                 "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/BatteryLevel",
                 "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/ButterFilter",
                 "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/Quadcopter",
-                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/RemoteXY_V3/src",
+                "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/RemoteXY_old/src",
                 "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/HID/src",
                 "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                 ""
@@ -32,10 +33,11 @@
                 "path": [
                     "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/include",
                     "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/src",
-                    "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
                     "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/PID",
                     "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/VL53L0X",
                     "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/RemoteXY/src",
+                    "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
                     "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/MPU6050",
                     "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/I2Cdev",
                     "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
@@ -44,7 +46,7 @@
                     "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/BatteryLevel",
                     "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/ButterFilter",
                     "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/Quadcopter",
-                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/RemoteXY_V3/src",
+                    "/home/lflavado/Documents/Projet BUT1/MonteQuadcopter/lib/RemoteXY_old/src",
                     "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/HID/src",
                     "/home/lflavado/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                     ""
