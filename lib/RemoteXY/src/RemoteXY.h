@@ -105,8 +105,7 @@
 */
 
 #ifndef _REMOTEXY_H_
-  #define _REMOTEXY_H_
-#endif
+#define _REMOTEXY_H_
 
 
 
@@ -167,6 +166,8 @@
   #define REMOTEXY_MOD__ESP32CORE_BLUETOOTH
 #else
   #error RemoteXY mode does not defined or defined error: REMOTEXY_MODE__XXXXXXX 
+#endif 
+
 #ifndef REMOTEXY_MAX_CLIENTS
 #define REMOTEXY_MAX_CLIENTS 4
 #endif
@@ -211,7 +212,7 @@
 
 // predefined configurations
 
-#if defined(REMOTEXY_MODE__HARDSERIAL) || defined(REMOTEXY_MODE__SERIAL) || defined(REMOTEXY_MODE__HC05_HARDSERIAL) || defined(REOMOTEXY_MODE__BLE_NANO) 
+#if defined(REMOTEXY_MODE__HARDSERIAL) || defined(REMOTEXY_MODE__SERIAL) || defined(REMOTEXY_MODE__HC05_HARDSERIAL) || defined(REMOTEXY_MODE__BLE_NANO) 
   CRemoteXY *remotexy;   
   #define RemoteXY_Init() remotexy = new CRemoteXY (RemoteXY_CONF_PROGMEM, &RemoteXY, REMOTEXY_ACCESS_PASSWORD, new CRemoteXYStream_HardSerial (&REMOTEXY_SERIAL, REMOTEXY_SERIAL_SPEED)) 
 

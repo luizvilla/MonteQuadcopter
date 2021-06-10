@@ -1,6 +1,12 @@
 
 
 #include "Arduino.h"
+
+// // RemoteXY select connection mode and include library 
+#define REMOTEXY_MODE__BLE_NANO
+
+#include <RemoteXY.h>
+
 // Initial includes
 #include <SoftwareSerial.h>
 #include "I2Cdev.h"
@@ -17,6 +23,10 @@
 #define FR_MOTOR 9
 #define BR_MOTOR 10
 #define BL_MOTOR 11
+// // RemoteXY select connection mode and include library 
+#define REMOTEXY_MODE__BLE_NANO
+
+#include <RemoteXY.h>
 
 
 //////////////////////////////////////////////
@@ -26,10 +36,6 @@
 // RemoteXY select connection mode and include library 
 //#define REMOTEXY__DEBUGLOGS Serial
 
-// // RemoteXY select connection mode and include library 
-#define REMOTEXY_MODE__BLE_NANO
-
-#include "RemoteXY.h"
 
 // RemoteXY connection settings 
 #define REMOTEXY_SERIAL Serial
@@ -41,31 +47,25 @@
 // RemoteXY configurate  
 #pragma pack(push, 1)
 uint8_t RemoteXY_CONF[] =
-  { 255,0,0,4,0,90,0,11,13,0,
-  129,0,47,14,12,2,17,77,111,116,
-  111,114,32,83,112,101,101,100,0,66,
-  130,47,18,13,10,2,26,66,130,67,
-  18,13,10,2,26,129,0,71,14,5,
-  2,17,80,105,116,99,104,0,66,130,
-  47,36,13,10,2,26,129,0,51,32,
-  5,2,17,82,111,108,108,0,66,130,
-  67,36,13,10,2,26,129,0,72,32,
-  4,2,17,89,97,119,0 };
+  { 255,4,0,0,0,21,0,11,13,0,
+  5,32,6,9,39,39,2,26,31,5,
+  32,55,9,39,39,2,26,31 };
   
 // this structure defines all the variables and events of your control interface 
 struct {
 
-    // output variables
-  int8_t motor_speed; // =0..100 level position 
-  int8_t show_pitch; // =0..100 level position 
-  int8_t show_roll; // =0..100 level position 
-  int8_t show_yaw; // =0..100 level position 
+    // input variables
+  int8_t joystick_1_x; // =-100..100 x-coordinate joystick position 
+  int8_t joystick_1_y; // =-100..100 y-coordinate joystick position 
+  int8_t joystick_2_x; // =-100..100 x-coordinate joystick position 
+  int8_t joystick_2_y; // =-100..100 y-coordinate joystick position 
 
     // other variable
   uint8_t connect_flag;  // =1 if wire connected, else =0 
 
 } RemoteXY;
-#pragma pack(pop)
+#pragma pack(pop) 
+
 
 
 /////////////////////////////////////////////

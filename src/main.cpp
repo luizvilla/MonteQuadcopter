@@ -4,13 +4,16 @@
 // PROGRAMMER - Luiz Villa
 //---------------------------------------
 
-#include "quad_init.h"  // Header that includes all that is needed to start the quadCopter
+#include "quad_init.h"
+
+
+
 
 // ================================================================
 // ===                      INITIAL SETUP                       ===
 // ================================================================
 void setup() {
-  //RemoteXY_Init ();  
+  RemoteXY_Init ();  
 
   quadInit(); // Function to initialize the quadCopter
 }
@@ -24,7 +27,7 @@ int delay_count = 0; //count the number of delays - used to increment the motor 
 
 void loop() {
 
-  //RemoteXY_Handler ();    // Handler of the graphic user interface. De-comment to trigger communication with the GUI
+  RemoteXY_Handler ();    // Handler of the graphic user interface. De-comment to trigger communication with the GUI
   
   // MEASUREMENT SUB-ROUTINE -------------------------------------------------
   measurement_routine();
